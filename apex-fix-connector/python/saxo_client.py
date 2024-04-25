@@ -115,15 +115,14 @@ class tick_processor():
 
 ##############################################################################
 
+if __name__=='__main__':
+    processor = tick_processor()
+
+    # keep the thread alive.
+    while processor.client.isLoggedOn():
+        sleep(60)
 
 
-processor = tick_processor()
-
-# keep the thread alive.
-while processor.client.isLoggedOn():
-    sleep(60)
-
-
-input('Press Enter to exit...')
-    
-##processor.client.stop()
+    input('Press Enter to exit...')
+        
+    ##processor.client.stop()

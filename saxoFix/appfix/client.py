@@ -15,7 +15,7 @@ from appfix.application import application
 class client():
 
     def __init__(self, tick_processor,
-                 config_file='config/client.conf',
+                 config_file='config/client.cfg',
                  read_positions_from_file=False,  # to load positions after restart
                  store_all_ticks=True,
                  save_history_to_files=True,

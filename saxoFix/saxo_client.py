@@ -30,7 +30,7 @@ class tick_processor():
         # ScreenLogShowOutgoing=Y
         # ScreenLogShowEvents=Y
         print('Starting Saxo_client...')
-        self.client = client(self, config_file='config/client.conf', 
+        self.client = client(self, config_file='config/client.cfg', 
                              read_positions_from_file=False,     # to load positions after restart
                              store_all_ticks=True,               # to store all incoming ticks
                              save_history_to_files=True,         # to save the price history to file

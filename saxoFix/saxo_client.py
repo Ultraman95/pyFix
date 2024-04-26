@@ -17,8 +17,8 @@ https://www.fixtrading.org/online-specification/trade-appendix/
 
 from time import sleep
 
-from apexquickfix.client import client
-from apexquickfix.order import order
+from appfix.client import client
+from appfix.order import order
 
 
 class tick_processor():
@@ -41,17 +41,6 @@ class tick_processor():
         self.trade_done = False
         self.cancel_done = False
 
-        # demo:
-        symbols = ['EUR/USD']
-
-        # live:
-        # symbols = ['EURUSD', 'GBPUSD', 'USDJPY']
-
-        for symbol in symbols:
-            print("send_MarketDataRequest symbol=", symbol)
-            self.client.app.sender.send_MarketDataRequest(symbol)
-            sleep(1)
-
     """
     # override this method with your own logic. 
     # it is executed on every price update. 
@@ -59,7 +48,7 @@ class tick_processor():
     def on_tick(self, symbol, app):
 
         # # Symbol is the one that got a price or execution update.
-        print('Price update for', symbol, '| bid:', app.history_dict[symbol].BID_TOB, '| ask:', app.history_dict[symbol].ASK_TOB)
+        # print('Price update for', symbol, '| bid:', app.history_dict[symbol].BID_TOB, '| ask:', app.history_dict[symbol].ASK_TOB)
 
         # access current bid/ask prices and order book sizes. 
         # print('prices:', app.history_dict[symbol].BID, app.history_dict[symbol].ASK, 
@@ -118,9 +107,22 @@ class tick_processor():
 if __name__=='__main__':
     processor = tick_processor()
 
+    while processor.client.isLoggedOnQuote():
+        # demo:
+        symbols = ['EUR/USD']
+
+        # live:
+        # symbols = ['EURUSD', 'GBPUSD', 'USDJPY']
+
+        for symbol in symbols:
+            print("send_MarketDataRequest symbol=", symbol)
+            processor.client.subInstrument(symbol)
+            sleep(1)
+        break
+
     # keep the thread alive.
-    while processor.client.isLoggedOn():
-        sleep(60)
+    #while processor.client.isLoggedOn():
+    #    sleep(60)
 
 
     input('Press Enter to exit...')

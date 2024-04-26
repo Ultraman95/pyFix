@@ -9,7 +9,7 @@
 from time import sleep
 import quickfix as fix
 
-from apexquickfix.application import application
+from appfix.application import application
 
 
 class client():
@@ -79,6 +79,18 @@ class client():
         return fix.Session.lookupSession(self.app.sender.sessionID_Trade).isLoggedOn() 
     
 
+    def subInstrument(self, symbol):
+        self.app.sender.send_MarketDataRequest(symbol)
+
+
+    def orderInsert(self, order):
+        self.app.sender.send_NewOrderSingle(order)
+
+
+    def orderCancel(self, order):
+        self.app.sender.send_OrderCancelRequest(order)
+
+        
     def stop(self):
         print("stop client")
         self.initiator.stop()

@@ -10,7 +10,7 @@ import logging, random
 import quickfix as fix
 import quickfix44 as fix44
     
-from apexquickfix.helpers import read_FIX_message, extract_message_field_value
+from appfix.helpers import read_FIX_message, extract_message_field_value
 
 
 class sender():  # fix.Application

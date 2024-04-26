@@ -13,12 +13,12 @@ from threading import Lock
 import quickfix as fix
 import quickfix44 as fix44
     
-from apexquickfix.helpers import log, setup_logger, read_FIX_message, extract_message_field_value, datetime_to_str
+from appfix.helpers import log, setup_logger, read_FIX_message, extract_message_field_value, datetime_to_str
 
-from apexquickfix.order import order
-from apexquickfix.sender import sender
-from apexquickfix.history import history
-from apexquickfix.execution_report import execution_report
+from appfix.order import order
+from appfix.sender import sender
+from appfix.history import history
+from appfix.execution_report import execution_report
 
 
 class application(fix.Application):
@@ -37,7 +37,7 @@ class application(fix.Application):
         super().__init__()
         self.store_all_ticks = store_all_ticks
         self.save_history_to_files = save_history_to_files
-        self.verbose = verbose
+        self.verbose = True
         self._position_file = 'positions.json'
         self._order_file = 'orders.json'
         self.execution_history_file = execution_history_file
@@ -71,6 +71,8 @@ class application(fix.Application):
 
         # Dictionary to hold Asset Histories
         self.history_dict = {}  # format: 'EURUSD': History
+
+        self.marketData_dict = {}
 
         # Dictionary to hold open orders
         self.open_orders = {}  # format: ClOrdID: Order
@@ -302,7 +304,7 @@ class application(fix.Application):
             bid_size = extract_message_field_value(fix.BidSize(), NoQuoteEntries_Group, 'int')  # 134
             ask_size = extract_message_field_value(fix.OfferSize(), NoQuoteEntries_Group, 'int')  # 135
 
-            self.update_asset(sending_time, _symbol, depth, bid, ask, bid_size, ask_size)
+            ##self.update_asset(sending_time, _symbol, depth, bid, ask, bid_size, ask_size)
         
         #################################
         
@@ -328,38 +330,33 @@ class application(fix.Application):
         if self.verbose:
             print(self._server_str + ' {MD} Full refresh!')
 
+        depth = {}
         symbol = extract_message_field_value(fix.Symbol(), message)
-        
-        if symbol in self.history_dict:
+        depth['symbol']=symbol
 
-            num_entries = extract_message_field_value(fix.NoMDEntries(), message, 'int')  # 268
 
-            # MarketDataSnapshotFullRefresh message contains multiple NoQuoteSets group
-            # Groups have indexes in FIX messages starting at 1
-            NoMDEntries_Group = fix44.MarketDataSnapshotFullRefresh.NoMDEntries()
-            # NoMDEntries_Group = fix44.MarketDataIncrementalRefresh.NoMDEntries()
+        depth['updateTime'] = sending_time
+        group = fix44.MarketDataSnapshotFullRefresh.NoMDEntries()
+        nb_entries = int(message.getField(fix.NoMDEntries()).getString())
+        for i in range(1, nb_entries + 1):
+            message.getGroup(i, group)
+            md_type = group.getField(fix.MDEntryType()).getString()
+            md_price = group.getField(fix.MDEntryPx()).getString()
+            md_amount = group.getField(fix.MDEntrySize()).getString()
+            if not md_amount:
+                md_amount = 0
+            order = {'price': float(md_price), 'amount': float(md_amount)}
+            if md_type == fix.MDEntryType_OFFER:
+                if 'asks' not in depth:
+                    depth['asks'] = []
+                depth['asks'].append(order)
+            if md_type == fix.MDEntryType_BID:
+                if 'bids' not in depth:
+                    depth['bids'] = []
+                depth['bids'].append(order)
+        self.marketData_dict[symbol]=depth
 
-            for i in range(num_entries):
-                message.getGroup(i+1, NoMDEntries_Group)
-                
-                bid, ask, bid_size, ask_size = None, None, None, None 
-
-                _type = extract_message_field_value(fix.MDEntryType(), NoMDEntries_Group, 'str')  # 269 (0: bid, 1: ask)
-                price = extract_message_field_value(fix.MDEntryPx(), NoMDEntries_Group, 'float')  # 270
-                size = extract_message_field_value(fix.MDEntrySize(), NoMDEntries_Group, 'float')  # 271
-                depth = extract_message_field_value(fix.QuoteEntryID(), NoMDEntries_Group, 'int')  # 299
-                
-                if _type == '0':
-                    bid = price
-                    bid_size = size
-                elif _type == '1':
-                    ask = price
-                    ask_size = size
-            
-                if self.verbose:
-                    print(f'symbol: {symbol} | bid: {bid} | ask: {ask} | bid_size: {bid_size} | ask_size: {ask_size}')
-
-                self.update_asset(sending_time, symbol, depth, bid, ask, bid_size, ask_size)
+        self.update_market_data(depth)
 
     ##########################################################################
 
@@ -562,6 +559,23 @@ class application(fix.Application):
         self.lock.acquire()
         self.tick_processor.on_execution_report(report, self)
         self.lock.release()
+
+
+    ##########################################################################
+
+    # Update MarketData methods
+
+    """
+    # update marketData
+    """
+    def update_market_data(self, data):
+
+        print('Updating Market Data----',data)
+        pass
+
+
+
+
 
     ##########################################################################
 

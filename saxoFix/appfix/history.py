@@ -11,7 +11,7 @@ from pathlib import Path
 
 import quickfix as fix
 
-from apexquickfix.helpers import log, setup_logger, extract_message_field_value
+from appfix.helpers import log, setup_logger, extract_message_field_value
 
 
 class history():
@@ -91,11 +91,10 @@ class history():
         print(depth,",",bid,",",bid_size,",",ask,",",ask_size)
         # print(depth,",",self.BID[depth],",",self.BID_SIZE[depth],",",self.ASK[depth],",",self.ASK_SIZE[depth])
         # only save complete ticks
-        print("upupupupupupupupupupupupupupupupupupupupupupupupupup",depth)
 
         if self.BID[depth] is None or self.BID_SIZE[depth] is None:
             return
-        print("cccccccccccccccccccccccccccccccc")
+
 
         if self.store_all_ticks:
 

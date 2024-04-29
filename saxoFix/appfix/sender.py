@@ -45,6 +45,8 @@ class sender():  # fix.Application
             
         reqid = self.app.check_new_symbol(symbol)  # fffff: ok to reference it here?
         self.app.add_symbol_to_positions(symbol)
+
+        self.app.subDic[str(reqid)] = symbol
         
         # Create new message of type MarketDataRequest
         message = fix.Message()
@@ -152,7 +154,8 @@ class sender():  # fix.Application
         message.setField(fix.ClOrdID(str(order.ClOrdID)))
         
         # Tag 1 - Account ID as provided by FIX administrator
-        message.setField(fix.Account(self.account))
+        if self.account is not None:
+            message.setField(fix.Account(self.account))
         
         # Tag 55
         message.setField(fix.Symbol(str(order.symbol)))

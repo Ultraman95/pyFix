@@ -120,10 +120,18 @@ if __name__=='__main__':
             sleep(1)
         break
 
+    sleep(5)
+
+    '''
+    while processor.client.isLoggedOnTrade():
+        _order = order(order_type='buy_market', symbol='EUR/USD', quantity=100)
+        processor.client.orderInsert(_order)
+        break
+
     # keep the thread alive.
     #while processor.client.isLoggedOn():
     #    sleep(60)
-
+    '''
 
     input('Press Enter to exit...')
         

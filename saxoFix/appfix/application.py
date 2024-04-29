@@ -73,6 +73,7 @@ class application(fix.Application):
         self.history_dict = {}  # format: 'EURUSD': History
 
         self.marketData_dict = {}
+        self.subDic = {}
 
         # Dictionary to hold open orders
         self.open_orders = {}  # format: ClOrdID: Order
@@ -276,37 +277,48 @@ class application(fix.Application):
         if self.verbose:
             print(self._server_str + ' MassQuote!')
         
-        #################################
-        # Enter Tick Storage Logic here.
-
-        # we could have multiple QuoteSets for multiple symbols
-        num_sets = extract_message_field_value(fix.NoQuoteSets(), message, 'int')  # 296
-        # print('num_sets:', num_sets)
+        qs_num = extract_message_field_value(fix.NoQuoteSets(), message, 'int')  # 296
+        NoQuoteSets_Group = fix44.MassQuote.NoQuoteSets()
+        message.getGroup(1, NoQuoteSets_Group)
         
-        for i in range(num_sets):
-
-            NoQuoteSets_Group = fix44.MassQuote.NoQuoteSets()
-            
-            # Groups have indexes in FIX messages starting at 1
-            message.getGroup(i+1, NoQuoteSets_Group)
-            reqid = extract_message_field_value(fix.QuoteSetID(), NoQuoteSets_Group)
-            # print(self._id_to_symbol)
-            _symbol = self._id_to_symbol[reqid]
-                        
-            # Bid/Offer data is inside NoQuoteEntries group, inside _NoQuoteSets group.
-            # num_sets = extract_message_field_value(fix.NoQuoteEntries(), message, 'int')  # 295, should always be 1.
-            NoQuoteEntries_Group = fix44.MassQuote.NoQuoteSets.NoQuoteEntries()          
-            NoQuoteSets_Group.getGroup(1, NoQuoteEntries_Group)
-
-            depth = extract_message_field_value(fix.QuoteEntryID(), NoQuoteEntries_Group, 'int')  # 299
-            bid = extract_message_field_value(fix.BidSpotRate(), NoQuoteEntries_Group, 'float')  # 188
-            ask = extract_message_field_value(fix.OfferSpotRate(), NoQuoteEntries_Group, 'float')  # 190
-            bid_size = extract_message_field_value(fix.BidSize(), NoQuoteEntries_Group, 'int')  # 134
-            ask_size = extract_message_field_value(fix.OfferSize(), NoQuoteEntries_Group, 'int')  # 135
-
-            ##self.update_asset(sending_time, _symbol, depth, bid, ask, bid_size, ask_size)
+        depth = {}
         
-        #################################
+        quoteSetId = fix.QuoteSetID()
+        NoQuoteSets_Group.getField(quoteSetId)
+        symbol = self.subDic[quoteSetId.getString()]
+        if symbol not in self.marketData_dict:
+            return
+        else:
+            depth = self.marketData_dict[symbol]
+
+        for i in range(int(qs_num)):
+            message.getGroup(1+i, NoQuoteSets_Group)
+            qe_Num = fix.NoQuoteEntries()
+            NoQuoteSets_Group.getField(qe_Num)
+            for j in range(qe_Num.getValue()):
+                NoQuoteEntries_Group = fix44.MassQuote.NoQuoteSets.NoQuoteEntries()          
+                NoQuoteSets_Group.getGroup(1+j, NoQuoteEntries_Group)
+
+                entry_id = extract_message_field_value(fix.QuoteEntryID(), NoQuoteEntries_Group, 'int')
+                asks = depth['asks'][entry_id]
+                bids = depth['bids'][entry_id]
+
+                bid = extract_message_field_value(fix.BidSpotRate(), NoQuoteEntries_Group, 'float')  # 188
+                if bid is not None:
+                    bids['price'] = bid
+                bid_size = extract_message_field_value(fix.BidSize(), NoQuoteEntries_Group, 'int')  # 134
+                if bid_size is not None:
+                    bids['amount'] = bid_size
+                ask = extract_message_field_value(fix.OfferSpotRate(), NoQuoteEntries_Group, 'float')  # 190
+                if ask is not None:
+                    asks['price'] = ask
+                ask_size = extract_message_field_value(fix.OfferSize(), NoQuoteEntries_Group, 'int')  # 135
+                if ask_size is not None:
+                    asks['amount'] = ask_size
+
+            depth =  self.marketData_dict[symbol]
+            depth['updateTime'] = sending_time
+            print("MassQuote: UpdateMarketData %s" % (depth))
         
         # If QuoteID is set the client has to respond immediately with a MassQuoteAcknowledgement.
         if message.isSetField(fix.QuoteID()):
